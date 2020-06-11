@@ -276,7 +276,7 @@ class CifFile:
 
             # Skip over Cif block that contains powder diffraction data.
             # Some elements in this block were missing from CIF files in
-            # Springer materials/Pauling file DBs.
+            # Springer Materials/Pauling File DBs.
             # This block anyway does not contain any structure information, and
             # CifParser was also not parsing it.
             if 'powder_pattern' in re.split(r"\n", x, 1)[0]:
@@ -387,8 +387,8 @@ class CifParser:
     def _sanitize_data(self, data):
         """
         Some CIF files do not conform to spec. This function corrects
-        known issues, particular in regards to Springer materials/
-        Pauling files.
+        known issues, particularly in regards to Springer Materials/
+        Pauling File data.
 
         This function is here so that CifParser can assume its
         input conforms to spec, simplifying its implementation.
@@ -415,7 +415,7 @@ class CifParser:
         # not contain this key.
         if "_atom_site_type_symbol" in data.data.keys():
 
-            # Keep a track of which data row needs to be removed.
+            # Keep track of which data row needs to be removed.
             # Example of a row: Nb,Zr '0.8Nb + 0.2Zr' .2a .m-3m 0 0 0 1 14
             # 'rhombic dodecahedron, Nb<sub>14</sub>'
             # Without this code, the above row in a structure would be parsed
@@ -437,7 +437,7 @@ class CifParser:
 
                 # CIF files from the Springer Materials/Pauling File have
                 # switched the label and symbol. Thus, in the
-                # above shown example row, '0.8Nb + 0.2Zr' is the symbol.
+                # above example of a row, '0.8Nb + 0.2Zr' is the symbol.
                 # Below, we split the strings on ' + ' to
                 # check if the length (or number of elements) in the label and
                 # symbol are equal.
@@ -558,7 +558,7 @@ class CifParser:
 
         # check for finite precision frac co-ordinates (e.g. 0.6667 instead of 0.6666666...7)
         # this can sometimes cause serious issues when applying symmetry operations
-        important_fracs = (1 / 3., 2 / 3.)
+        important_fracs = (1 / 3., 2 / 3., 1 / 6., 5 / 6., 1 / 9., 5 / 9., 7 / 9., 1 / 12., 5 / 12., 7 / 12., 11 / 12.)
         fracs_to_change = {}
         for label in ('_atom_site_fract_x', '_atom_site_fract_y', '_atom_site_fract_z'):
             if label in data.data.keys():

@@ -214,7 +214,7 @@ class EOSBase(metaclass=ABCMeta):
                  label=label)
 
         plt.grid(True)
-        plt.xlabel("Volume $\\AA^3$")
+        plt.xlabel("Volume ($\mathrm{\\AA}^3$)")
         plt.ylabel("Energy (eV)")
         plt.legend(loc="best", shadow=True)
         # Add text with fit parameters.
@@ -261,7 +261,7 @@ class EOSBase(metaclass=ABCMeta):
         ax.plot(vfit, self.func(vfit), linestyle="dashed", color=color, label=label)
 
         ax.grid(True)
-        ax.set_xlabel("Volume $\\AA^3$")
+        ax.set_xlabel("Volume ($\mathrm{\\AA}^3$)")
         ax.set_ylabel("Energy (eV)")
         ax.legend(loc="best", shadow=True)
         # Add text with fit parameters.

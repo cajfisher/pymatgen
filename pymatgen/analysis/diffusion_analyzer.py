@@ -155,21 +155,21 @@ class DiffusionAnalyzer(MSONable):
                 time step, axis]
             specie (Element/Specie): Specie to calculate diffusivity for as a
                 String. E.g., "Li".
-            temperature (float): Temperature of the diffusion run in Kelvin.
+            temperature (float): Temperature of the diffusion run in kelvin.
             time_step (int): Time step between measurements.
             step_skip (int): Sampling frequency of the displacements (
                 time_step is multiplied by this number to get the real time
                 between measurements)
             smoothed (str): Whether to smooth the MSD, and what mode to smooth.
-                Supported modes are:
+                Supported modes are
 
                 i. "max", which tries to use the maximum #
                    of data points for each time origin, subject to a
                    minimum # of observations given by min_obs, and then
                    weights the observations based on the variance
-                   accordingly. This is the default.
-                ii. "constant", in which each timestep is averaged over
-                    the number of time_steps given by min_steps.
+                   accordingly (this is the default);
+                ii. "constant", in which each time step is averaged over
+                    the number of time_steps given by min_steps;
                 iii. None / False / any other false-like quantity. No
                    smoothing.
 
@@ -179,10 +179,9 @@ class DiffusionAnalyzer(MSONable):
                 and min_obs = 30, the MSD vs dt will be
                 calculated up to dt = total_run_time / 3, so that each
                 diffusing atom is measured at least 3 uncorrelated times.
-                Only applies in smoothed="max".
             avg_nsteps (int): Used with smoothed="constant". Determines the
-                number of time steps to average over to get the msd for each
-                timestep. Default of 1000 is usually pretty good.
+                number of time steps to average over to get the MSD for each
+                time step. Default of 1000 is usually pretty good.
             lattices (array): Numpy array of lattice matrix of every step. Used
                 for NPT-AIMD. For NVT-AIMD, the lattice at each time step is
                 set to the lattice in the "structure" argument.
@@ -230,7 +229,7 @@ class DiffusionAnalyzer(MSONable):
                     raise ValueError('Not enough data to calculate diffusivity')
                 timesteps = np.arange(0, nsteps - avg_nsteps)
             else:
-                # limit the number of sampled timesteps to 200
+                # limit the number of sampled time steps to 200
                 min_dt = int(1000 / (self.step_skip * self.time_step))
                 max_dt = min(len(indices) * nsteps // self.min_obs, nsteps)
                 if min_dt >= max_dt:
@@ -240,7 +239,7 @@ class DiffusionAnalyzer(MSONable):
 
             dt = timesteps * self.time_step * self.step_skip
 
-            # calculate the smoothed msd values
+            # calculate the smoothed MSD values
             msd = np.zeros_like(dt, dtype=np.double)
             sq_disp_ions = np.zeros((len(dc), len(dt)), dtype=np.double)
             msd_components = np.zeros(dt.shape + (3,))
@@ -259,7 +258,7 @@ class DiffusionAnalyzer(MSONable):
                     dx = dc[:, n:, :] - dc[:, :-n, :]
                     dcomponents = dc[:, n:, :] - dc[:, :-n, :]
 
-                # Get msd
+                # Calculate msd
                 sq_disp = dx ** 2
                 sq_disp_ions[:, i] = np.average(np.sum(sq_disp, axis=2), axis=1)
                 msd[i] = np.average(sq_disp_ions[:, i][indices])
@@ -267,7 +266,7 @@ class DiffusionAnalyzer(MSONable):
                 msd_components[i] = np.average(dcomponents[indices] ** 2,
                                                axis=(0, 1))
 
-                # Get mscd
+                # Calculate mscd
                 sq_chg_disp = np.sum(dx[indices, :, :], axis=0) ** 2
                 mscd[i] = np.average(np.sum(sq_chg_disp, axis=1), axis=0) / len(indices)
 
@@ -278,7 +277,7 @@ class DiffusionAnalyzer(MSONable):
                     return np.linalg.lstsq(a * w_root[:, None], b * w_root, rcond=None)
                 return np.linalg.lstsq(a, b, rcond=None)
 
-            # Get self diffusivity
+            # Calculate self diffusivity
             m_components = np.zeros(3)
             m_components_res = np.zeros(3)
             a = np.ones((len(dt), 2))
@@ -292,7 +291,7 @@ class DiffusionAnalyzer(MSONable):
             # m shouldn't be negative
             m = max(m, 1e-15)
 
-            # Get also the charge diffusivity
+            # Also calculate charge diffusivity
             (m_chg, c_chg), res_chg, _, _ = weighted_lstsq(a, mscd)
             # m shouldn't be negative
             m_chg = max(m_chg, 1e-15)
@@ -368,10 +367,10 @@ class DiffusionAnalyzer(MSONable):
         Provides a summary of diffusion information.
 
         Args:
-            include_msd_t (bool): Whether to include mean square displace and
-                time data with the data.
-            include_msd_t (bool): Whether to include mean square charge displace and
-                time data with the data.
+            include_msd_t (bool): Whether to include mean square displacements and
+                time data.
+            include_mscd_t (bool): Whether to include mean square charge displacements and
+                time data.
 
         Returns:
             (dict) of diffusion and conductivity data.
@@ -406,9 +405,9 @@ class DiffusionAnalyzer(MSONable):
     def get_framework_rms_plot(self, plt=None, granularity=200,
                                matching_s=None):
         """
-        Get the plot of rms framework displacement vs time. Useful for checking
+        Ouputs a plot of rms framework displacement vs time. Useful for checking
         for melting, especially if framework atoms can move via paddle-wheel
-        or similar mechanism (which would show up in max framework displacement
+        or similar mechanisms (which would show up in max framework displacements
         but doesn't constitute melting).
 
         Args:
@@ -452,22 +451,22 @@ class DiffusionAnalyzer(MSONable):
         plt.plot(plot_dt, rms[:, 0], label='RMS')
         plt.plot(plot_dt, rms[:, 1], label='max')
         plt.legend(loc='best')
-        plt.xlabel("Timestep ({})".format(unit))
+        plt.xlabel("Time step ({})".format(unit))
         plt.ylabel("normalized distance")
         plt.tight_layout()
         return plt
 
-    def get_msd_plot(self, plt=None, mode="specie"):
+    def get_msd_plot(self, plt=None, mode="species"):
         """
-        Get the plot of the smoothed msd vs time graph. Useful for
+        Outputs a plot of smoothed MSD vs time. Useful for
         checking convergence. This can be written to an image file.
 
         Args:
             plt: A plot object. Defaults to None, which means one will be
                 generated.
-            mode (str): Determines type of msd plot. By "species", "sites",
-                or direction (default). If mode = "mscd", the smoothed mscd vs.
-                time will be plotted.
+            mode (str): Determines type of msd plot. Valid options are "species", "sites",
+                "mscd" and "direction" (default). If mode = "mscd", a plot of smoothed mscd vs.
+                time will be produced.
         """
         from pymatgen.util.plotting import pretty_plot
         plt = pretty_plot(12, 8, plt=plt)
@@ -502,7 +501,7 @@ class DiffusionAnalyzer(MSONable):
             plt.plot(plot_dt, self.msd_components[:, 2], 'b')
             plt.legend(["Overall", "a", "b", "c"], loc=2, prop={"size": 20})
 
-        plt.xlabel("Timestep ({})".format(unit))
+        plt.xlabel("Time step ({})".format(unit))
         if mode == "mscd":
             plt.ylabel("MSCD ($\\AA^2$)")
         else:
@@ -512,7 +511,7 @@ class DiffusionAnalyzer(MSONable):
 
     def plot_msd(self, mode="default"):
         """
-        Plot the smoothed msd vs time graph. Useful for checking convergence.
+        Plot smoothed msd vs time. Useful for checking convergence.
 
         Args:
             mode (str): Can be "default" (the default, shows only the MSD for
@@ -530,7 +529,7 @@ class DiffusionAnalyzer(MSONable):
 
         Args:
             filename (str): Filename. Supported formats are csv and dat. If
-                the extension is csv, a csv file is written. Otherwise,
+                the extension is csv, a csv file is written, otherwise
                 a dat format is assumed.
         """
         fmt = "csv" if filename.lower().endswith(".csv") else "dat"
@@ -551,24 +550,24 @@ class DiffusionAnalyzer(MSONable):
     def from_structures(cls, structures, specie, temperature,
                         time_step, step_skip, initial_disp=None,
                         initial_structure=None, **kwargs):
-        r"""
+        """
         Convenient constructor that takes in a list of Structure objects to
         perform diffusion analysis.
 
         Args:
-            structures ([Structure]): list of Structure objects (must be
-                ordered in sequence of run). E.g., you may have performed
-                sequential VASP runs to obtain sufficient statistics.
-            specie (Element/Specie): Specie to calculate diffusivity for as a
-                String. E.g., "Li".
-            temperature (float): Temperature of the diffusion run in Kelvin.
+            structures ([Structure]): List of Structure objects (must be
+                in same order as actual VASP runs, e.g., if sequential MD runs 
+                have been performed to obtain sufficient statistics).
+            specie (Element/Specie): Species to calculate diffusivity for as a
+                String, e.g., "Li".
+            temperature (float): Temperature of the diffusion run in kelvin.
             time_step (int): Time step between measurements.
-            step_skip (int): Sampling frequency of the displacements (
-                time_step is multiplied by this number to get the real time
-                between measurements)
-            initial_disp (np.ndarray): Sometimes, you need to iteratively
-                compute estimates of the diffusivity. This supplies an
-                initial displacement that will be added on to the initial
+            step_skip (int): Sampling frequency of the displacements (time_step
+                is multiplied by this number to obtain the actual time
+                between measurements).
+            initial_disp (np.ndarray): Sometimes you need to iteratively
+                compute estimates of the diffusivity. This specifies an
+                additional displacement that will be added to the initial
                 displacements. Note that this makes sense only when
                 smoothed=False.
             initial_structure (Structure): Like initial_disp, this is used
@@ -620,14 +619,14 @@ class DiffusionAnalyzer(MSONable):
         perform diffusion analysis.
 
         Args:
-            vaspruns ([Vasprun]): List of Vaspruns (must be ordered  in
-                sequence of MD simulation). E.g., you may have performed
-                sequential VASP runs to obtain sufficient statistics.
-            specie (Element/Specie): Specie to calculate diffusivity for as a
-                String. E.g., "Li".
-            initial_disp (np.ndarray): Sometimes, you need to iteratively
-                compute estimates of the diffusivity. This supplies an
-                initial displacement that will be added on to the initial
+            vaspruns ([Vasprun]): List of Vaspruns (must be in same order 
+                as actual VASP calculations, e.g., if sequential MD runs 
+                have been performed to obtain sufficient statistics).
+            specie (Element/Specie): Species to calculate diffusivity for as a
+                String, e.g., "Li".
+            initial_disp (np.ndarray): Sometimes you need to iteratively
+                compute estimates of the diffusivity. This specifies an
+                additionial displacement that will be added to the initial
                 displacements. Note that this makes sense only when
                 smoothed=False.
             initial_structure (Structure): Like initial_disp, this is used
@@ -676,16 +675,16 @@ class DiffusionAnalyzer(MSONable):
         perform diffusion analysis.
 
         Args:
-            filepaths ([str]): List of paths to vasprun.xml files of runs. (
-                must be ordered in sequence of MD simulation). For example,
-                you may have done sequential VASP runs and they are in run1,
-                run2, run3, etc. You should then pass in
-                ["run1/vasprun.xml", "run2/vasprun.xml", ...].
-            specie (Element/Specie): Specie to calculate diffusivity for as a
-                String. E.g., "Li".
-            step_skip (int): Sampling frequency of the displacements (
-                time_step is multiplied by this number to get the real time
-                between measurements)
+            filepaths ([str]): List of paths to vasprun.xml files of runs 
+                (must be in same order as actual VASP calculations, 
+                e.g., if sequential MD runs are in run1, run2, run3, ..., 
+                you should pass them in as ["run1/vasprun.xml", 
+                "run2/vasprun.xml", ...]).
+            specie (Element/Specie): Species to calculate diffusivity for as a
+                String, e.g., "Li".
+            step_skip (int): Sampling frequency of the displacements
+                (time_step is multiplied by this number to get the real time
+                between measurements).
             ncores (int): Numbers of cores to use for multiprocessing. Can
                 speed up vasprun parsing considerably. Defaults to None,
                 which means serial. It should be noted that if you want to
@@ -693,9 +692,9 @@ class DiffusionAnalyzer(MSONable):
                 .xml files should be a multiple of the ionic_step_skip.
                 Otherwise, inconsistent results may arise. Serial mode has no
                 such restrictions.
-            initial_disp (np.ndarray): Sometimes, you need to iteratively
-                compute estimates of the diffusivity. This supplies an
-                initial displacement that will be added on to the initial
+            initial_disp (np.ndarray): Sometimes you need to iteratively
+                compute estimates of the diffusivity. This option specifies an
+                additional displacement that will be added to the initial
                 displacements. Note that this makes sense only when
                 smoothed=False.
             initial_structure (Structure): Like initial_disp, this is used
@@ -768,16 +767,16 @@ class DiffusionAnalyzer(MSONable):
 
 def get_conversion_factor(structure, species, temperature):
     """
-    Conversion factor to convert between cm^2/s diffusivity measurements and
-    mS/cm conductivity measurements based on number of atoms of diffusing
-    species. Note that the charge is based on the oxidation state of the
-    species (where available), or else the number of valence electrons
-    (usually a good guess, esp for main group ions).
+    Factor to convert between cm^2/s and mS/cm based on the
+    number of atoms of diffusing species. Note that the charge is 
+    based on the oxidation state of the species (where available), 
+    or else the number of valence electrons (usually a good guess, 
+    esp. for main group ions).
 
     Args:
         structure (Structure): Input structure.
         species (Element/Specie): Diffusing species.
-        temperature (float): Temperature of the diffusion run in Kelvin.
+        temperature (float): Temperature of the diffusion run in kelvin.
 
     Returns:
         Conversion factor.
@@ -829,16 +828,16 @@ def fit_arrhenius(temps, diffusivities):
 
 def get_extrapolated_diffusivity(temps, diffusivities, new_temp):
     """
-    Returns (Arrhenius) extrapolated diffusivity at new_temp
+    Returns (Arrhenius) extrapolated diffusivity at new_temp.
 
     Args:
-        temps ([float]): A sequence of temperatures. units: K
+        temps ([float]): A sequence of temperatures. units: K.
         diffusivities ([float]): A sequence of diffusivities (e.g.,
-            from DiffusionAnalyzer.diffusivity). units: cm^2/s
-        new_temp (float): desired temperature. units: K
+            from DiffusionAnalyzer.diffusivity). units: cm^2/s.
+        new_temp (float): desired temperature. units: K.
 
     Returns:
-        (float) Diffusivity at extrapolated temp in mS/cm.
+        (float) Diffusivity at extrapolated temp. in mS/cm.
     """
     Ea, c, _ = fit_arrhenius(temps, diffusivities)
     return c * np.exp(-Ea / (const.k / const.e * new_temp))
@@ -850,15 +849,15 @@ def get_extrapolated_conductivity(temps, diffusivities, new_temp, structure,
     Returns extrapolated mS/cm conductivity.
 
     Args:
-        temps ([float]): A sequence of temperatures. units: K
+        temps ([float]): A sequence of temperatures. units: K.
         diffusivities ([float]): A sequence of diffusivities (e.g.,
-            from DiffusionAnalyzer.diffusivity). units: cm^2/s
-        new_temp (float): desired temperature. units: K
-        structure (structure): Structure used for the diffusivity calculation
-        species (string/Specie): conducting species
+            from DiffusionAnalyzer.diffusivity). units: cm^2/s.
+        new_temp (float): desired temperature. units: K.
+        structure (structure): Structure used for the diffusivity calculation.
+        species (string/Specie): conducting species.
 
     Returns:
-        (float) Conductivity at extrapolated temp in mS/cm.
+        (float) Conductivity at extrapolated temp. in mS/cm.
     """
     return get_extrapolated_diffusivity(temps, diffusivities, new_temp) \
         * get_conversion_factor(structure, species, new_temp)
